@@ -7,144 +7,102 @@
     <title>PWR Staking</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/web3@1.7.4/dist/web3.min.js"></script>
+    <style>
+        #wallet {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            text-align: right;
+        }
+    </style>
 </head>
 
 <body>
     <header>
         <h1>PWR Staking</h1>
     </header>
-    
-    <section id="wallet">
-        <button id="connectWallet" onclick="connectWallet()">Connect Wallet</button>
-        <p id="walletAddress">Not connected</p>
-    </section>
-    
     <main>
-        <section id="price">
-            <h2>Live Market Data</h2>
-            <p>PWR Price: <span id="pwrPrice">Loading...</span> USD</p>
-            <p>LP Token Price: <span id="lpPrice">Loading...</span> USD</p>
+        <section id="wallet">
+            <button id="connectWallet" onclick="connectWallet()">Connect Wallet</button>
+            <p id="walletAddress">Not connected</p>
         </section>
-        
         <section id="staking">
             <h2>Stake Your PWR/PLS LP Tokens</h2>
-            <input type="number" id="stakeAmount" placeholder="Amount">
+            <input type="number" id="stakeAmount" placeholder="Enter amount to stake">
             <button id="autoStakeButton" onclick="autoStake()">Stake LP Tokens</button>
         </section>
-        
         <section id="unstake">
             <h2>Unstake LP Tokens</h2>
             <button id="unstakeButton" onclick="unstakeTokens()">Unstake</button>
-            <p id="unstakeCountdown"></p>
         </section>
-        
         <section id="rewards">
             <h2>Claim Rewards</h2>
             <button id="claimRewardsButton" onclick="claimRewards()">Claim Rewards</button>
         </section>
-        
         <section id="activeStakes">
             <h2>Your Active Stakes</h2>
             <button onclick="showActiveStakes()">View Active Stakes</button>
             <ul id="activeStakesList"></ul>
         </section>
-        
-        <section id="apr">
-            <h2>Current APR</h2>
-            <p><span id="aprRate">Loading...</span>%</p>
-        </section>
     </main>
-    
     <footer>
         <p>&copy; 2025 PWR Staking</p>
     </footer>
-    
+
     <script>
         let web3, contract, lpTokenContract;
 
         const contractAddress = "0x4936e0DFa40F5Ada61920d6Bbfd12D2BA88FfAe8";
         const lpTokenAddress = "0xe5c56E4a8F8d96e3A91b18D83b7f0c36663C9a74";
 
-        async function fetchPrices() {
-            try {
-                const resPWR = await fetch('https://api.dexscreener.com/latest/dex/tokens/0x3Eb3B7b3D95Cb3699295D7868F85e43b56AeeFcB');
-                const dataPWR = await resPWR.json();
-                document.getElementById('pwrPrice').innerText = dataPWR?.pairs?.[0]?.priceUsd || 'N/A';
+        const contractABI = [{"inputs":[{"internalType":"uint256","name":"_amount","type":"uint256"}],"name":"stake","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"unstake","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"claimRewards","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"getActiveStakes","outputs":[{"internalType":"uint256[]","name":"","type":"uint256[]"}],"stateMutability":"view","type":"function"}];
+        const lpTokenABI = [{"constant":true,"inputs":[{"name":"owner","type":"address"},{"name":"spender","type":"address"}],"name":"allowance","outputs":[{"name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"spender","type":"address"},{"name":"value","type":"uint256"}],"name":"approve","outputs":[{"name":"","type":"bool"}],"stateMutability":"nonpayable","type":"function"}];
 
-                const resLP = await fetch('https://api.dexscreener.com/latest/dex/tokens/0xe5c56E4a8F8d96e3A91b18D83b7f0c36663C9a74');
-                const dataLP = await resLP.json();
-                document.getElementById('lpPrice').innerText = dataLP?.pairs?.[0]?.priceUsd || 'N/A';
-            } catch (error) {
-                console.error("Error fetching prices:", error);
+        async function connectWallet() {
+            if (window.ethereum) {
+                web3 = new Web3(window.ethereum);
+                await window.ethereum.request({ method: "eth_requestAccounts" });
+                const accounts = await web3.eth.getAccounts();
+                document.getElementById("walletAddress").innerText = `Connected: ${accounts[0]}`;
+                contract = new web3.eth.Contract(contractABI, contractAddress);
+                lpTokenContract = new web3.eth.Contract(lpTokenABI, lpTokenAddress);
+            } else {
+                alert("MetaMask not detected");
             }
         }
-
-        async function fetchAPR() {
-            document.getElementById('aprRate').innerText = "12.5";
-        }
-
-        fetchPrices();
-        fetchAPR();
-        setInterval(fetchPrices, 10000);
 
         async function autoStake() {
-            if (!contract) {
-                alert("Contract not loaded. Connect wallet first.");
-                return;
-            }
             const accounts = await web3.eth.getAccounts();
             const stakeAmount = document.getElementById("stakeAmount").value;
             if (!stakeAmount || stakeAmount <= 0) {
                 alert("Enter a valid stake amount.");
                 return;
             }
+
             try {
                 const allowance = await lpTokenContract.methods.allowance(accounts[0], contractAddress).call();
                 if (BigInt(allowance) < BigInt(web3.utils.toWei(stakeAmount, "ether"))) {
                     await lpTokenContract.methods.approve(contractAddress, web3.utils.toWei(stakeAmount, "ether")).send({ from: accounts[0] });
-                    alert("Approval successful! Now staking...");
+                    alert("Approval successful! Automatically staking...");
                 }
-                const tx = await contract.methods.stake(web3.utils.toWei(stakeAmount, "ether")).send({ from: accounts[0] });
+
+                const tx = await contract.methods.stake(web3.utils.toWei(stakeAmount, "ether")).send({ from: accounts[0], gas: 300000 });
                 alert("Stake successful! TX: " + tx.transactionHash);
             } catch (error) {
                 alert("Stake failed: " + error.message);
             }
         }
 
-        async function claimRewards() {
-            if (!contract) {
-                alert("Contract not loaded. Connect wallet first.");
-                return;
-            }
+        async function unstakeTokens() {
             const accounts = await web3.eth.getAccounts();
             try {
-                const tx = await contract.methods.claimRewards().send({ from: accounts[0] });
-                alert("Rewards claimed! TX: " + tx.transactionHash);
+                const tx = await contract.methods.unstake().send({ from: accounts[0], gas: 300000 });
+                alert("Unstake successful! TX: " + tx.transactionHash);
             } catch (error) {
-                alert("Claiming rewards failed: " + error.message);
-            }
-        }
-
-        async function showActiveStakes() {
-            if (!contract) {
-                alert("Contract not loaded. Connect wallet first.");
-                return;
-            }
-            const accounts = await web3.eth.getAccounts();
-            try {
-                const stakes = await contract.methods.getActiveStakes(accounts[0]).call();
-                document.getElementById("activeStakesList").innerHTML = stakes.map((stake, index) => `
-                    <li>
-                        Stake ${index + 1}: ${web3.utils.fromWei(stake.amount, "ether")} LP 
-                        | APR: 12.5% 
-                        | Staked on: ${new Date(stake.timestamp * 1000).toLocaleString()}
-                    </li>
-                `).join('');
-            } catch (error) {
-                console.error("Error fetching active stakes:", error);
+                alert("Unstake failed: " + error.message);
             }
         }
     </script>
 </body>
 
-</html>
+</html> 
