@@ -1,158 +1,142 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PWR Staking</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/web3@1.7.4/dist/web3.min.js"></script>
-</head>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #121212;
+            color: white;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+        }
 
+        header {
+            background-color: #1E1E1E;
+            padding: 20px;
+            font-size: 24px;
+            font-weight: bold;
+            position: relative;
+        }
+
+        #connectWallet {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background-color: #4A90E2;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        #connectWallet:hover {
+            background-color: #357ABD;
+        }
+
+        main {
+            padding: 20px;
+        }
+
+        section {
+            background-color: #1E1E1E;
+            padding: 20px;
+            margin: 20px auto;
+            border-radius: 10px;
+            max-width: 600px;
+            box-shadow: 0px 0px 10px rgba(255, 255, 255, 0.2);
+        }
+
+        button {
+            background-color: #4A90E2;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        button:hover {
+            background-color: #357ABD;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        th, td {
+            border: 1px solid #4A90E2;
+            padding: 10px;
+            text-align: center;
+        }
+
+        th {
+            background-color: #357ABD;
+        }
+
+        footer {
+            background-color: #1E1E1E;
+            padding: 10px;
+            position: relative;
+            width: 100%;
+        }
+    </style>
+</head>
 <body>
     <header>
         <h1>PWR Staking</h1>
+        <button id="connectWallet" onclick="connectWallet()">Connect Wallet</button>
     </header>
+    
     <main>
-        <section id="wallet"> <button id="connectWallet" onclick="connectWallet()">Connect Wallet</button>
-            <p id="walletAddress">Not connected</p>
-        </section>
         <section id="staking">
-            <h2>Stake Your PWR/PLS LP Tokens</h2> <input type="number" id="stakeAmount" placeholder="Enter amount to stake"> <button id="autoStakeButton" onclick="autoStake()">Stake LP Tokens</button>
+            <h2>Stake Your PWR/PLS LP Tokens</h2>
+            <input type="number" id="stakeAmount" placeholder="Enter amount to stake">
+            <button id="approveButton" onclick="approveTokens()">Approve LP Tokens</button>
+            <button id="autoStakeButton" onclick="autoStake()">Stake LP Tokens</button>
         </section>
+
         <section id="unstake">
-            <h2>Unstake LP Tokens</h2> <button id="unstakeButton" onclick="unstakeTokens()">Unstake</button>
+            <h2>Unstake LP Tokens</h2>
+            <button id="unstakeButton" onclick="unstakeTokens()">Unstake</button>
         </section>
+
         <section id="rewards">
-            <h2>Claim Rewards</h2> <button id="claimRewardsButton" onclick="claimRewards()">Claim Rewards</button>
+            <h2>Claim Rewards</h2>
+            <button id="claimRewardsButton" onclick="claimRewards()">Claim Rewards</button>
+        </section>
+
+        <section id="userStakes">
+            <h2>Your Stakes</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Amount</th>
+                        <th>Duration (Days)</th>
+                        <th>Rewards</th>
+                    </tr>
+                </thead>
+                <tbody id="stakesTable">
+                    <tr><td colspan="3">No active stakes</td></tr>
+                </tbody>
+            </table>
         </section>
     </main>
+    
     <footer>
         <p>&copy; 2025 PWR Staking</p>
     </footer>
-    <script>
-        let web3;
-        let contract;
-        const contractAddress = "0x4936e0DFa40F5Ada61920d6Bbfd12D2BA88FfAe8";
-        const lpTokenAddress = "0xe5c56E4a8F8d96e3A91b18D83b7f0c36663C9a74";
-        const contractABI = [{
-            "inputs": [{
-                "internalType": "uint256",
-                "name": "_amount",
-                "type": "uint256"
-            }],
-            "name": "stake",
-            "outputs": [],
-            "stateMutability": "nonpayable",
-            "type": "function"
-        }, {
-            "inputs": [],
-            "name": "unstake",
-            "outputs": [],
-            "stateMutability": "nonpayable",
-            "type": "function"
-        }, {
-            "inputs": [],
-            "name": "claimRewards",
-            "outputs": [],
-            "stateMutability": "nonpayable",
-            "type": "function"
-        }];
-        const lpTokenABI = [{
-            "constant": false,
-            "inputs": [{
-                "name": "spender",
-                "type": "address"
-            }, {
-                "name": "value",
-                "type": "uint256"
-            }],
-            "name": "approve",
-            "outputs": [{
-                "name": "",
-                "type": "bool"
-            }],
-            "stateMutability": "nonpayable",
-            "type": "function"
-        }, {
-            "constant": true,
-            "inputs": [{
-                "name": "owner",
-                "type": "address"
-            }, {
-                "name": "spender",
-                "type": "address"
-            }],
-            "name": "allowance",
-            "outputs": [{
-                "name": "",
-                "type": "uint256"
-            }],
-            "stateMutability": "view",
-            "type": "function"
-        }];
-        async function connectWallet() {
-            if (window.ethereum) {
-                web3 = new Web3(window.ethereum);
-                await window.ethereum.request({
-                    method: "eth_requestAccounts"
-                });
-                const accounts = await web3.eth.getAccounts();
-                document.getElementById("walletAddress").innerText = `Connected: ${accounts[0]}`;
-                contract = new web3.eth.Contract(contractABI, contractAddress);
-                lpTokenContract = new web3.eth.Contract(lpTokenABI, lpTokenAddress);
-            } else {
-                alert("MetaMask not detected");
-            }
-        }
-        async function autoStake() {
-            const accounts = await web3.eth.getAccounts();
-            const stakeAmount = document.getElementById("stakeAmount").value;
-            if (!stakeAmount || stakeAmount <= 0) {
-                alert("Enter a valid stake amount.");
-                return;
-            }
-            try {
-                const allowance = await lpTokenContract.methods.allowance(accounts[0], contractAddress).call();
-                if (BigInt(allowance) < BigInt(web3.utils.toWei(stakeAmount, "ether"))) {
-                    alert("Approving LP Tokens...");
-                    await lpTokenContract.methods.approve(contractAddress, web3.utils.toWei(stakeAmount, "ether")).send({
-                        from: accounts[0]
-                    });
-                    alert("Approval successful! Now staking...");
-                }
-                const tx = await contract.methods.stake(web3.utils.toWei(stakeAmount, "ether")).send({
-                    from: accounts[0],
-                    gas: 300000
-                });
-                alert("Stake successful! TX: " + tx.transactionHash);
-            } catch (error) {
-                alert("Stake failed: " + error.message);
-            }
-        }
-        async function unstakeTokens() {
-            const accounts = await web3.eth.getAccounts();
-            try {
-                const tx = await contract.methods.unstake().send({
-                    from: accounts[0]
-                });
-                alert("Unstake successful! TX: " + tx.transactionHash);
-            } catch (error) {
-                alert("Unstake failed: " + error.message);
-            }
-        }
-        async function claimRewards() {
-            const accounts = await web3.eth.getAccounts();
-            try {
-                const tx = await contract.methods.claimRewards().send({
-                    from: accounts[0]
-                });
-                alert("Rewards claimed! TX: " + tx.transactionHash);
-            } catch (error) {
-                alert("Claiming rewards failed: " + error.message);
-            }
-        }
-    </script>
 </body>
-
 </html>
