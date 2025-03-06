@@ -8,8 +8,8 @@
     <script src="https://cdn.jsdelivr.net/npm/web3@1.7.4/dist/web3.min.js"></script>
     <style>
         #connectWallet {
-            position: fixed;
-            bottom: 20px;
+            position: absolute;
+            top: 10px;
             right: 20px;
             background-color: #4A90E2;
             color: white;
@@ -29,6 +29,7 @@
 <body>
     <header>
         <h1>PWR Staking</h1>
+        <button id="connectWallet" onclick="connectWallet()">Connect Wallet</button>
     </header>
     
     <main>
@@ -77,8 +78,6 @@
     <footer>
         <p>&copy; 2025 PWR Staking</p>
     </footer>
-
-    <button id="connectWallet" onclick="connectWallet()">Connect Wallet</button>
 
     <script>
         let web3;
