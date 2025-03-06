@@ -7,53 +7,135 @@
     <title>Active Stakes - PWR Staking</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/web3@1.7.4/dist/web3.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+        }
+        #wallet {
+            margin-bottom: 20px;
+        }
+        table {
+            width: 80%;
+            margin: auto;
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: center;
+        }
+        th {
+            background-color: #ff9900;
+            color: white;
+        }
+        button {
+            margin-top: 10px;
+            padding: 10px;
+            cursor: pointer;
+        }
+    </style>
 </head>
 
 <body>
     <header>
         <h1>Active Stakes</h1>
-        <a href="index.html" style="color: #ff9900;">← Back to Staking</a>
+        <button onclick="connectWallet()">Connect Wallet</button>
+        <p id="walletAddress">Not connected</p>
     </header>
 
-    <main>
-        <section id="activeStakes">
-            <h2>Your Active Stakes</h2>
-            <button onclick="showActiveStakes()">View Active Stakes</button>
-            <ul id="activeStakesList"></ul>
-        </section>
-    </main>
-
-    <footer>
-        <p>&copy; 2025 PWR Staking</p>
-    </footer>
+    <section id="stakes">
+        <h2>Your Active Stakes</h2>
+        <button onclick="fetchActiveStakes()">Refresh Stakes</button>
+        <table>
+            <thead>
+                <tr>
+                    <th>Stake ID</th>
+                    <th>Amount (LP Tokens)</th>
+                    <th>Time Left to Unstake</th>
+                </tr>
+            </thead>
+            <tbody id="stakesTable">
+                <tr><td colspan="3">No stakes found</td></tr>
+            </tbody>
+        </table>
+    </section>
 
     <script>
         let web3, contract;
         const contractAddress = "0x4936e0DFa40F5Ada61920d6Bbfd12D2BA88FfAe8";
+        const contractABI = [
+            {
+                "inputs": [{"internalType": "address", "name": "user", "type": "address"}],
+                "name": "getUserStakes",
+                "outputs": [{"internalType": "uint256[]", "name": "stakes", "type": "uint256[]"}],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [{"internalType": "address", "name": "user", "type": "address"}],
+                "name": "getStakeTimes",
+                "outputs": [{"internalType": "uint256[]", "name": "times", "type": "uint256[]"}],
+                "stateMutability": "view",
+                "type": "function"
+            }
+        ];
 
-        async function connectWeb3() {
+        async function connectWallet() {
             if (window.ethereum) {
                 web3 = new Web3(window.ethereum);
                 await window.ethereum.request({ method: "eth_requestAccounts" });
-                contract = new web3.eth.Contract([{ "inputs": [{ "internalType": "address", "name": "", "type": "address" }], "name": "getActiveStakes", "outputs": [{ "internalType": "uint256[]", "name": "", "type": "uint256[]" }], "stateMutability": "view", "type": "function" }], contractAddress);
+                const accounts = await web3.eth.getAccounts();
+                document.getElementById("walletAddress").innerText = `Connected: ${accounts[0]}`;
+                contract = new web3.eth.Contract(contractABI, contractAddress);
+                fetchActiveStakes();
             } else {
                 alert("MetaMask not detected");
             }
         }
 
-        async function showActiveStakes() {
-            const accounts = await web3.eth.getAccounts();
+        async function fetchActiveStakes() {
             try {
-                const stakes = await contract.methods.getActiveStakes(accounts[0]).call();
-                document.getElementById("activeStakesList").innerHTML = stakes.map((amt, i) =>
-                    `<li>Stake ${i + 1}: ${web3.utils.fromWei(amt, "ether")} LP</li>`).join('');
+                const accounts = await web3.eth.getAccounts();
+                const stakes = await contract.methods.getUserStakes(accounts[0]).call();
+                const times = await contract.methods.getStakeTimes(accounts[0]).call();
+                
+                const tableBody = document.getElementById("stakesTable");
+                tableBody.innerHTML = "";
+
+                if (stakes.length === 0) {
+                    tableBody.innerHTML = "<tr><td colspan='3'>No active stakes found</td></tr>";
+                    return;
+                }
+
+                for (let i = 0; i < stakes.length; i++) {
+                    const stakeAmount = web3.utils.fromWei(stakes[i], "ether");
+                    const timeLeft = getTimeLeft(times[i]);
+                    
+                    const row = `<tr>
+                        <td>${i + 1}</td>
+                        <td>${stakeAmount} LP</td>
+                        <td>${timeLeft}</td>
+                    </tr>`;
+                    tableBody.innerHTML += row;
+                }
             } catch (error) {
-                console.error("Error fetching active stakes:", error);
+                console.error("Error fetching stakes:", error);
             }
         }
 
-        connectWeb3();
+        function getTimeLeft(stakeTime) {
+            const currentTime = Math.floor(Date.now() / 1000);
+            const timeLeft = (stakeTime + 86400) - currentTime; // 86400 seconds = 24 hours
+            
+            if (timeLeft <= 0) {
+                return "Ready to unstake";
+            }
+            const hours = Math.floor(timeLeft / 3600);
+            const minutes = Math.floor((timeLeft % 3600) / 60);
+            return `${hours}h ${minutes}m`;
+        }
     </script>
 </body>
-
 </html>
+
