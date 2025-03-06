@@ -4,138 +4,96 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Active Stakes - PWR Staking</title>
+    <title>PWR Staking</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/web3@1.7.4/dist/web3.min.js"></script>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-        }
         #wallet {
-            margin-bottom: 20px;
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            text-align: right;
         }
-        table {
-            width: 80%;
-            margin: auto;
-            border-collapse: collapse;
+        #price-container {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            text-align: left;
         }
-        th, td {
-            border: 1px solid #ddd;
-            padding: 10px;
-            text-align: center;
+        #price-container a {
+            display: block;
+            color: #ff9900;
+            text-decoration: none;
+            margin-top: 5px;
+            font-weight: bold;
         }
-        th {
-            background-color: #ff9900;
-            color: white;
+        #chart-container {
+            position: absolute;
+            top: 80px;
+            left: 20px;
+            width: 300px;
+            height: 200px;
         }
-        button {
-            margin-top: 10px;
-            padding: 10px;
-            cursor: pointer;
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
         }
     </style>
 </head>
 
 <body>
     <header>
-        <h1>Active Stakes</h1>
-        <button onclick="connectWallet()">Connect Wallet</button>
-        <p id="walletAddress">Not connected</p>
+        <h1>PWR Staking</h1>
+        <nav>
+            <a href="active_stakes.html" class="btn">View Active Stakes</a>
+        </nav>
     </header>
+    
+    <div id="price-container">
+        <p>PWR Price: <span id="pwrPrice">Loading...</span> USD</p>
+        <a href="active_stakes.html">View Active Stakes</a>
+    </div>
 
-    <section id="stakes">
-        <h2>Your Active Stakes</h2>
-        <button onclick="fetchActiveStakes()">Refresh Stakes</button>
-        <table>
-            <thead>
-                <tr>
-                    <th>Stake ID</th>
-                    <th>Amount (LP Tokens)</th>
-                    <th>Time Left to Unstake</th>
-                </tr>
-            </thead>
-            <tbody id="stakesTable">
-                <tr><td colspan="3">No stakes found</td></tr>
-            </tbody>
-        </table>
-    </section>
+    <div id="chart-container">
+        <iframe src="https://dexscreener.com/pulsechain/0x3Eb3B7b3D95Cb3699295D7868F85e43b56AeeFcB?embed=1&theme=dark"></iframe>
+    </div>
 
+    <main>
+        <section id="wallet">
+            <button id="connectWallet" onclick="connectWallet()">Connect Wallet</button>
+            <p id="walletAddress">Not connected</p>
+        </section>
+        <section id="staking">
+            <h2>Stake Your PWR/PLS LP Tokens</h2>
+            <input type="number" id="stakeAmount" placeholder="Enter amount to stake">
+            <button id="autoStakeButton" onclick="autoStake()">Stake LP Tokens</button>
+        </section>
+        <section id="unstake">
+            <h2>Unstake LP Tokens</h2>
+            <button id="unstakeButton" onclick="unstakeTokens()">Unstake</button>
+        </section>
+        <section id="rewards">
+            <h2>Claim Rewards</h2>
+            <button id="claimRewardsButton" onclick="claimRewards()">Claim Rewards</button>
+        </section>
+    </main>
+    <footer>
+        <p>&copy; 2025 PWR Staking</p>
+    </footer>
+    
     <script>
-        let web3, contract;
-        const contractAddress = "0x4936e0DFa40F5Ada61920d6Bbfd12D2BA88FfAe8";
-        const contractABI = [
-            {
-                "inputs": [{"internalType": "address", "name": "user", "type": "address"}],
-                "name": "getUserStakes",
-                "outputs": [{"internalType": "uint256[]", "name": "stakes", "type": "uint256[]"}],
-                "stateMutability": "view",
-                "type": "function"
-            },
-            {
-                "inputs": [{"internalType": "address", "name": "user", "type": "address"}],
-                "name": "getStakeTimes",
-                "outputs": [{"internalType": "uint256[]", "name": "times", "type": "uint256[]"}],
-                "stateMutability": "view",
-                "type": "function"
-            }
-        ];
-
-        async function connectWallet() {
-            if (window.ethereum) {
-                web3 = new Web3(window.ethereum);
-                await window.ethereum.request({ method: "eth_requestAccounts" });
-                const accounts = await web3.eth.getAccounts();
-                document.getElementById("walletAddress").innerText = `Connected: ${accounts[0]}`;
-                contract = new web3.eth.Contract(contractABI, contractAddress);
-                fetchActiveStakes();
-            } else {
-                alert("MetaMask not detected");
-            }
-        }
-
-        async function fetchActiveStakes() {
+        async function fetchPWRPrice() {
             try {
-                const accounts = await web3.eth.getAccounts();
-                const stakes = await contract.methods.getUserStakes(accounts[0]).call();
-                const times = await contract.methods.getStakeTimes(accounts[0]).call();
-                
-                const tableBody = document.getElementById("stakesTable");
-                tableBody.innerHTML = "";
-
-                if (stakes.length === 0) {
-                    tableBody.innerHTML = "<tr><td colspan='3'>No active stakes found</td></tr>";
-                    return;
-                }
-
-                for (let i = 0; i < stakes.length; i++) {
-                    const stakeAmount = web3.utils.fromWei(stakes[i], "ether");
-                    const timeLeft = getTimeLeft(times[i]);
-                    
-                    const row = `<tr>
-                        <td>${i + 1}</td>
-                        <td>${stakeAmount} LP</td>
-                        <td>${timeLeft}</td>
-                    </tr>`;
-                    tableBody.innerHTML += row;
-                }
+                const resPWR = await fetch('https://api.dexscreener.com/latest/dex/tokens/0x3Eb3B7b3D95Cb3699295D7868F85e43b56AeeFcB');
+                const dataPWR = await resPWR.json();
+                document.getElementById('pwrPrice').innerText = dataPWR?.pairs?.[0]?.priceUsd || 'N/A';
             } catch (error) {
-                console.error("Error fetching stakes:", error);
+                console.error("Error fetching PWR price:", error);
             }
         }
-
-        function getTimeLeft(stakeTime) {
-            const currentTime = Math.floor(Date.now() / 1000);
-            const timeLeft = (stakeTime + 86400) - currentTime; // 86400 seconds = 24 hours
-            
-            if (timeLeft <= 0) {
-                return "Ready to unstake";
-            }
-            const hours = Math.floor(timeLeft / 3600);
-            const minutes = Math.floor((timeLeft % 3600) / 60);
-            return `${hours}h ${minutes}m`;
-        }
+        fetchPWRPrice();
+        setInterval(fetchPWRPrice, 10000);
     </script>
 </body>
 </html>
-
