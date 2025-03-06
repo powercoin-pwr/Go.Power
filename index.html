@@ -8,11 +8,29 @@
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/web3@1.7.4/dist/web3.min.js"></script>
     <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+        header, footer {
+            text-align: center;
+        }
+        main {
+            max-width: 600px;
+            margin: auto;
+        }
+        section {
+            margin-bottom: 15px;
+        }
         #wallet {
             position: absolute;
-            top: 20px;
-            right: 20px;
+            top: 10px;
+            right: 10px;
             text-align: right;
+        }
+        button, input {
+            padding: 8px;
+            font-size: 14px;
         }
     </style>
 </head>
@@ -28,12 +46,13 @@
         </section>
         <section id="staking">
             <h2>Stake Your PWR/PLS LP Tokens</h2>
-            <input type="number" id="stakeAmount" placeholder="Enter amount to stake">
+            <input type="number" id="stakeAmount" placeholder="Amount">
             <button id="autoStakeButton" onclick="autoStake()">Stake LP Tokens</button>
         </section>
         <section id="unstake">
             <h2>Unstake LP Tokens</h2>
             <button id="unstakeButton" onclick="unstakeTokens()">Unstake</button>
+            <p id="unstakeCountdown"></p>
         </section>
         <section id="rewards">
             <h2>Claim Rewards</h2>
@@ -78,14 +97,12 @@
                 alert("Enter a valid stake amount.");
                 return;
             }
-
             try {
                 const allowance = await lpTokenContract.methods.allowance(accounts[0], contractAddress).call();
                 if (BigInt(allowance) < BigInt(web3.utils.toWei(stakeAmount, "ether"))) {
                     await lpTokenContract.methods.approve(contractAddress, web3.utils.toWei(stakeAmount, "ether")).send({ from: accounts[0] });
                     alert("Approval successful! Automatically staking...");
                 }
-
                 const tx = await contract.methods.stake(web3.utils.toWei(stakeAmount, "ether")).send({ from: accounts[0], gas: 300000 });
                 alert("Stake successful! TX: " + tx.transactionHash);
             } catch (error) {
@@ -101,6 +118,12 @@
             } catch (error) {
                 alert("Unstake failed: " + error.message);
             }
+        }
+
+        async function showActiveStakes() {
+            const accounts = await web3.eth.getAccounts();
+            const stakes = await contract.methods.getActiveStakes(accounts[0]).call();
+            document.getElementById("activeStakesList").innerHTML = stakes.map((amt, i) => `<li>Stake ${i+1}: ${web3.utils.fromWei(amt, "ether")} LP</li>`).join('');
         }
     </script>
 </body>
