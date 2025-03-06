@@ -20,24 +20,34 @@
         
         <section id="staking">
             <h2>Stake Your PWR/PLS LP Tokens</h2>
-            <button id="emergencyUnstakeButton">Emergency Unstake</button>
-            <button id="unstakeButton">Unstake LP Tokens</button>
             <button id="approveButton">Approve LP Tokens</button>
-            <input type="number" id="stakeAmount" placeholder="Enter amount">
+            <input type="number" id="stakeAmount" placeholder="Enter amount to stake">
             <button id="stakeButton">Stake</button>
         </section>
-        
-        <section id="stakeTable">
-            <h2>Recent Stakes</h2>
+
+        <section id="unstake">
+            <h2>Unstake LP Tokens</h2>
+            <input type="number" id="unstakeAmount" placeholder="Enter amount to unstake">
+            <button id="unstakeButton">Unstake</button>
+        </section>
+
+        <section id="rewards">
+            <h2>Claim Rewards</h2>
+            <button id="claimRewardsButton">Claim Rewards</button>
+        </section>
+
+        <section id="activeStakes">
+            <h2>Active Stakes</h2>
             <table>
                 <thead>
                     <tr>
                         <th>Address</th>
                         <th>Amount Staked</th>
-                        <th>Rewards Earned</th>
+                        <th>Start Time</th>
+                        <th>Rewards Accumulated</th>
                     </tr>
                 </thead>
-                <tbody id="stakeRecords">
+                <tbody id="activeStakeRecords">
                 </tbody>
             </table>
         </section>
