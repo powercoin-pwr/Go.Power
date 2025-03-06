@@ -6,25 +6,6 @@
     <title>PWR Staking</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/web3@1.7.4/dist/web3.min.js"></script>
-    <style>
-        #connectWallet {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            background-color: #4A90E2;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 5px;
-            font-size: 16px;
-            cursor: pointer;
-            transition: 0.3s;
-        }
-
-        #connectWallet:hover {
-            background-color: #357ABD;
-        }
-    </style>
 </head>
 <body>
     <header>
@@ -32,15 +13,14 @@
     </header>
     
     <main>
+        <section id="wallet">
+            <button id="connectWallet" onclick="connectWallet()">Connect Wallet</button>
+            <p id="walletAddress">Not connected</p>
+        </section>
+        
         <section id="staking">
             <h2>Stake Your PWR/PLS LP Tokens</h2>
             <input type="number" id="stakeAmount" placeholder="Enter amount to stake">
-            <label for="stakeDays">Select Stake Duration (days):</label>
-            <select id="stakeDays">
-                <option value="30">30 Days</option>
-                <option value="60">60 Days</option>
-                <option value="90">90 Days</option>
-            </select>
             <button id="autoStakeButton" onclick="autoStake()">Stake LP Tokens</button>
         </section>
 
@@ -53,29 +33,11 @@
             <h2>Claim Rewards</h2>
             <button id="claimRewardsButton" onclick="claimRewards()">Claim Rewards</button>
         </section>
-
-        <section id="userStakes">
-            <h2>Your Stakes</h2>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Amount</th>
-                        <th>Duration (Days)</th>
-                        <th>Rewards</th>
-                    </tr>
-                </thead>
-                <tbody id="stakesTable">
-                    <tr><td colspan="3">No active stakes</td></tr>
-                </tbody>
-            </table>
-        </section>
     </main>
     
     <footer>
         <p>&copy; 2025 PWR Staking</p>
     </footer>
-
-    <button id="connectWallet" onclick="connectWallet()">Connect Wallet</button>
 
     <script>
         let web3;
@@ -84,10 +46,14 @@
         const lpTokenAddress = "0xe5c56E4a8F8d96e3A91b18D83b7f0c36663C9a74";
 
         const contractABI = [
-            { "inputs": [{ "internalType": "uint256", "name": "_amount", "type": "uint256" }, { "internalType": "uint256", "name": "_days", "type": "uint256" }], "name": "stake", "outputs": [], "stateMutability": "nonpayable", "type": "function" },
+            { "inputs": [{ "internalType": "uint256", "name": "_amount", "type": "uint256" }], "name": "stake", "outputs": [], "stateMutability": "nonpayable", "type": "function" },
             { "inputs": [], "name": "unstake", "outputs": [], "stateMutability": "nonpayable", "type": "function" },
-            { "inputs": [], "name": "claimRewards", "outputs": [], "stateMutability": "nonpayable", "type": "function" },
-            { "inputs": [{ "internalType": "address", "name": "user", "type": "address" }], "name": "getUserStakes", "outputs": [{ "internalType": "uint256[]", "name": "amounts", "type": "uint256[]" }, { "internalType": "uint256[]", "name": "durations", "type": "uint256[]" }, { "internalType": "uint256[]", "name": "rewards", "type": "uint256[]" }], "stateMutability": "view", "type": "function" }
+            { "inputs": [], "name": "claimRewards", "outputs": [], "stateMutability": "nonpayable", "type": "function" }
+        ];
+
+        const lpTokenABI = [
+            { "constant": false, "inputs": [{ "name": "spender", "type": "address" }, { "name": "value", "type": "uint256" }], "name": "approve", "outputs": [{ "name": "", "type": "bool" }], "stateMutability": "nonpayable", "type": "function" },
+            { "constant": true, "inputs": [{ "name": "owner", "type": "address" }, { "name": "spender", "type": "address" }], "name": "allowance", "outputs": [{ "name": "", "type": "uint256" }], "stateMutability": "view", "type": "function" }
         ];
 
         async function connectWallet() {
@@ -95,11 +61,55 @@
                 web3 = new Web3(window.ethereum);
                 await window.ethereum.request({ method: "eth_requestAccounts" });
                 const accounts = await web3.eth.getAccounts();
-                alert(`Connected: ${accounts[0]}`);
+                document.getElementById("walletAddress").innerText = `Connected: ${accounts[0]}`;
                 contract = new web3.eth.Contract(contractABI, contractAddress);
-                getUserStakes(accounts[0]);
+                lpTokenContract = new web3.eth.Contract(lpTokenABI, lpTokenAddress);
             } else {
                 alert("MetaMask not detected");
+            }
+        }
+
+        async function autoStake() {
+            const accounts = await web3.eth.getAccounts();
+            const stakeAmount = document.getElementById("stakeAmount").value;
+            if (!stakeAmount || stakeAmount <= 0) {
+                alert("Enter a valid stake amount.");
+                return;
+            }
+            try {
+                const allowance = await lpTokenContract.methods.allowance(accounts[0], contractAddress).call();
+                if (BigInt(allowance) < BigInt(web3.utils.toWei(stakeAmount, "ether"))) {
+                    alert("Approving LP Tokens...");
+                    await lpTokenContract.methods.approve(contractAddress, web3.utils.toWei(stakeAmount, "ether"))
+                        .send({ from: accounts[0] });
+                    alert("Approval successful! Now staking...");
+                }
+                
+                const tx = await contract.methods.stake(web3.utils.toWei(stakeAmount, "ether"))
+                    .send({ from: accounts[0], gas: 300000 });
+                alert("Stake successful! TX: " + tx.transactionHash);
+            } catch (error) {
+                alert("Stake failed: " + error.message);
+            }
+        }
+
+        async function unstakeTokens() {
+            const accounts = await web3.eth.getAccounts();
+            try {
+                const tx = await contract.methods.unstake().send({ from: accounts[0] });
+                alert("Unstake successful! TX: " + tx.transactionHash);
+            } catch (error) {
+                alert("Unstake failed: " + error.message);
+            }
+        }
+
+        async function claimRewards() {
+            const accounts = await web3.eth.getAccounts();
+            try {
+                const tx = await contract.methods.claimRewards().send({ from: accounts[0] });
+                alert("Rewards claimed! TX: " + tx.transactionHash);
+            } catch (error) {
+                alert("Claiming rewards failed: " + error.message);
             }
         }
     </script>
