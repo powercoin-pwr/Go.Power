@@ -4,68 +4,109 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PWR Staking</title>
+    <title>🚀 PowerCoin Staking 🚀</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/web3@1.7.4/dist/web3.min.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
-            padding: 20px;
+            background-color: #0c0c0c;
+            color: #eaeaea;
+            margin: 0;
+            padding: 0;
         }
-        header, footer {
+        header {
+            background-color: #171717;
+            padding: 20px;
             text-align: center;
+            border-bottom: 2px solid #ffd700;
+        }
+        header h1 {
+            color: #ffd700;
+            font-size: 2rem;
         }
         main {
-            max-width: 600px;
-            margin: auto;
+            max-width: 800px;
+            margin: 30px auto;
+            padding: 20px;
         }
         section {
-            margin-bottom: 15px;
+            background-color: #1f1f1f;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        button, input {
+            padding: 10px;
+            font-size: 16px;
+            margin-top: 10px;
+            border-radius: 5px;
+            border: none;
+        }
+        button {
+            background-color: #ffd700;
+            color: #0c0c0c;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #ffae00;
         }
         #wallet {
             position: absolute;
-            top: 10px;
-            right: 10px;
+            top: 20px;
+            right: 20px;
             text-align: right;
         }
-        button, input {
-            padding: 8px;
-            font-size: 14px;
+        footer {
+            text-align: center;
+            padding: 10px;
+            border-top: 1px solid #444;
+            margin-top: 20px;
+            color: #888;
         }
     </style>
 </head>
 
 <body>
     <header>
-        <h1>PWR Staking</h1>
+        <h1>🚀 PowerCoin Staking 🚀</h1>
     </header>
+
+    <section id="wallet">
+        <button onclick="connectWallet()">Connect Wallet</button>
+        <p id="walletAddress">Not connected</p>
+    </section>
+
     <main>
-        <section id="wallet">
-            <button id="connectWallet" onclick="connectWallet()">Connect Wallet</button>
-            <p id="walletAddress">Not connected</p>
+        <section id="price">
+            <h2>Current PWR Price: <span id="pwrPrice">Loading...</span></h2>
         </section>
+
         <section id="staking">
             <h2>Stake Your PWR/PLS LP Tokens</h2>
-            <input type="number" id="stakeAmount" placeholder="Amount">
-            <button id="autoStakeButton" onclick="autoStake()">Stake LP Tokens</button>
+            <input type="number" id="stakeAmount" placeholder="Enter amount to stake">
+            <button onclick="autoStake()">Stake LP Tokens</button>
         </section>
+
         <section id="unstake">
             <h2>Unstake LP Tokens</h2>
-            <button id="unstakeButton" onclick="unstakeTokens()">Unstake</button>
-            <p id="unstakeCountdown"></p>
+            <button onclick="unstakeTokens()">Unstake</button>
         </section>
+
         <section id="rewards">
-            <h2>Claim Rewards</h2>
-            <button id="claimRewardsButton" onclick="claimRewards()">Claim Rewards</button>
+            <h2>Claim Your Rewards</h2>
+            <button onclick="claimRewards()">Claim Rewards</button>
         </section>
+
         <section id="activeStakes">
             <h2>Your Active Stakes</h2>
             <button onclick="showActiveStakes()">View Active Stakes</button>
             <ul id="activeStakesList"></ul>
         </section>
     </main>
+
     <footer>
-        <p>&copy; 2025 PWR Staking</p>
+        &copy; 2025 PowerCoin Staking
     </footer>
 
     <script>
@@ -90,41 +131,21 @@
             }
         }
 
-        async function autoStake() {
-            const accounts = await web3.eth.getAccounts();
-            const stakeAmount = document.getElementById("stakeAmount").value;
-            if (!stakeAmount || stakeAmount <= 0) {
-                alert("Enter a valid stake amount.");
-                return;
-            }
-            try {
-                const allowance = await lpTokenContract.methods.allowance(accounts[0], contractAddress).call();
-                if (BigInt(allowance) < BigInt(web3.utils.toWei(stakeAmount, "ether"))) {
-                    await lpTokenContract.methods.approve(contractAddress, web3.utils.toWei(stakeAmount, "ether")).send({ from: accounts[0] });
-                    alert("Approval successful! Automatically staking...");
-                }
-                const tx = await contract.methods.stake(web3.utils.toWei(stakeAmount, "ether")).send({ from: accounts[0], gas: 300000 });
-                alert("Stake successful! TX: " + tx.transactionHash);
-            } catch (error) {
-                alert("Stake failed: " + error.message);
-            }
-        }
-
-        async function unstakeTokens() {
-            const accounts = await web3.eth.getAccounts();
-            try {
-                const tx = await contract.methods.unstake().send({ from: accounts[0], gas: 300000 });
-                alert("Unstake successful! TX: " + tx.transactionHash);
-            } catch (error) {
-                alert("Unstake failed: " + error.message);
-            }
-        }
-
         async function showActiveStakes() {
             const accounts = await web3.eth.getAccounts();
             const stakes = await contract.methods.getActiveStakes(accounts[0]).call();
-            document.getElementById("activeStakesList").innerHTML = stakes.map((amt, i) => `<li>Stake ${i+1}: ${web3.utils.fromWei(amt, "ether")} LP</li>`).join('');
+            const list = stakes.map((amt, i) => `<li>Stake ${i + 1}: ${web3.utils.fromWei(amt, "ether")} LP Tokens</li>`).join('');
+            document.getElementById("activeStakesList").innerHTML = list;
         }
+
+        async function fetchPwrPrice() {
+            const res = await fetch('https://api.dexscreener.com/latest/dex/tokens/0x3Eb3B7b3D95Cb3699295D7868F85e43b56AeeFcB');
+            const data = await res.json();
+            document.getElementById('pwrPrice').innerText = data.pairs[0].priceUsd;
+        }
+
+        fetchPwrPrice();
+        setInterval(fetchPwrPrice, 10000);
     </script>
 </body>
 
