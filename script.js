@@ -73,7 +73,8 @@ const lpTokenContract = new web3.eth.Contract(lpTokenABI, lpTokenAddress);
 document.getElementById("approveButton").addEventListener("click", async () => {
     const accounts = await web3.eth.getAccounts();
     try {
-        await lpTokenContract.methods.approve(contractAddress, web3.utils.toWei("1000000", "ether")).send({ from: accounts[0] });
+        const approvalTx = await lpTokenContract.methods.approve(contractAddress, web3.utils.toWei("1000000", "ether")).send({ from: accounts[0] });
+        console.log("Approval Transaction Hash:", approvalTx.transactionHash);
         alert("Approval successful! Now you can stake.");
     } catch (error) {
         console.error("Approval failed:", error);
