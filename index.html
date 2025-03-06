@@ -79,5 +79,57 @@
         fetchPWRPrice();
         setInterval(fetchPWRPrice, 10000);
     </script>
+    <script>
+        let web3;
+        let userAccount = null;
+
+        async function connectWallet() {
+            if (window.ethereum) {
+                try {
+                    web3 = new Web3(window.ethereum);
+                    await window.ethereum.request({ method: "eth_requestAccounts" });
+                    const accounts = await web3.eth.getAccounts();
+                    
+                    if (accounts.length > 0) {
+                        userAccount = accounts[0];
+                        document.getElementById("walletAddress").innerText = `Connected: ${userAccount}`;
+                    } else {
+                        document.getElementById("walletAddress").innerText = "No wallet connected.";
+                    }
+                    
+                    // Verificar que la red sea PulseChain
+                    const networkId = await web3.eth.net.getId();
+                    if (networkId !== 369) {  // PulseChain Mainnet ID
+                        alert("Please switch to PulseChain Mainnet in MetaMask.");
+                    }
+                } catch (error) {
+                    console.error("Error connecting wallet:", error);
+                    alert("Connection failed. Try again.");
+                }
+            } else {
+                alert("MetaMask not detected. Please install MetaMask.");
+            }
+        }
+
+        async function checkWallet() {
+            if (window.ethereum) {
+                web3 = new Web3(window.ethereum);
+                const accounts = await web3.eth.getAccounts();
+                if (accounts.length > 0) {
+                    userAccount = accounts[0];
+                    document.getElementById("walletAddress").innerText = `Connected: ${userAccount}`;
+                } else {
+                    document.getElementById("walletAddress").innerText = "No wallet connected.";
+                }
+            } else {
+                document.getElementById("walletAddress").innerText = "MetaMask not detected.";
+            }
+        }
+
+        // Ejecutar al cargar la página para ver si ya está conectada la wallet
+        checkWallet();
+    </script>
+</body>
+</html>
 </body>
 </html>
