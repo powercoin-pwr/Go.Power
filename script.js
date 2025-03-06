@@ -41,3 +41,14 @@ document.getElementById("approveButton").addEventListener("click", async () => {
         alert("Approval failed. Check console for details.");
     }
 });
+
+document.getElementById("emergencyUnstakeButton").addEventListener("click", async () => {
+    const accounts = await web3.eth.getAccounts();
+    try {
+        await contract.methods.emergencyUnstake().send({ from: accounts[0], gas: 300000 });
+        alert("Emergency unstake successful!");
+    } catch (error) {
+        console.error("Emergency unstake failed:", error);
+        alert("Failed to execute emergency unstake. Check console for details.");
+    }
+});
