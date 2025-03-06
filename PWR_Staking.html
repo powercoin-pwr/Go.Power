@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PWR Staking</title>
+    <script src="https://cdn.jsdelivr.net/npm/web3@1.7.4/dist/web3.min.js"></script>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #0a0a0a;
+            color: #ffffff;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+        }
+        header {
+            background: linear-gradient(90deg, #ffcc00, #ff6600);
+            padding: 20px;
+            font-size: 28px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        button {
+            background-color: #ffcc00;
+            color: #0a0a0a;
+            border: none;
+            padding: 12px 24px;
+            margin: 10px;
+            cursor: pointer;
+            font-size: 18px;
+            font-weight: bold;
+            text-transform: uppercase;
+            border-radius: 8px;
+            transition: 0.3s;
+        }
+        button:hover {
+            background-color: #ff6600;
+            color: #ffffff;
+        }
+        section {
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #1f1f1f;
+            border-radius: 12px;
+            width: 80%;
+            box-shadow: 0px 0px 20px rgba(255, 204, 0, 0.5);
+        }
+        h2 {
+            color: #ffcc00;
+            font-size: 22px;
+            text-transform: uppercase;
+            font-weight: bold;
+        }
+        footer {
+            background: linear-gradient(90deg, #ffcc00, #ff6600);
+            padding: 15px;
+            font-size: 16px;
+            font-weight: bold;
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            letter-spacing: 1px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>PWR Staking</h1>
+    </header>
+    
+    <main>
+        <section id="wallet">
+            <button id="connectWallet">Connect Wallet</button>
+            <p id="walletAddress">Not connected</p>
+        </section>
+        
+        <section id="staking">
+            <h2>Stake Your PWR/PLS LP Tokens</h2>
+            <button id="approveButton">Approve LP Tokens</button>
+            <input type="number" id="stakeAmount" placeholder="Enter amount">
+            <button id="stakeButton">Stake</button>
+        </section>
+    </main>
+    
+    <footer>
+        <p>&copy; 2025 PWR Staking</p>
+    </footer>
+
+    <script>
+        let web3;
+        let contract;
+        const contractAddress = "0x4936e0DFa40F5Ada61920d6Bbfd12D2BA88FfAe8";
+        const lpTokenAddress = "0xe5c56E4a8F8d96e3A91b18D83b7f0c36663C9a74";
+        const lpTokenABI = [
+            {
+                "constant": false,
+                "inputs": [
+                    { "name": "spender", "type": "address" },
+                    { "name": "value", "type": "uint256" }
+                ],
+                "name": "approve",
+                "outputs": [{ "name": "", "type": "bool" }],
+                "stateMutability": "nonpayable",
+                "type": "function"
+            }
+        ];
+
+        async function connectWallet() {
+            if (window.ethereum) {
+                web3 = new Web3(window.ethereum);
+                await window.ethereum.request({ method: "eth_requestAccounts" });
+                const accounts = await web3.eth.getAccounts();
+                document.getElementById("walletAddress").innerText = `Connected: ${accounts[0]}`;
+            } else {
+                alert("MetaMask not detected");
+            }
+        }
+
+        document.getElementById("connectWallet").addEventListener("click", connectWallet);
+        document.getElementById("approveButton").addEventListener("click", async () => {
+            const accounts = await web3.eth.getAccounts();
+            const lpTokenContract = new web3.eth.Contract(lpTokenABI, lpTokenAddress);
+            try {
+                await lpTokenContract.methods.approve(contractAddress, web3.utils.toWei("1000000", "ether")).send({ from: accounts[0] });
+                alert("Approval successful! Now you can stake.");
+            } catch (error) {
+                console.error("Approval failed:", error);
+                alert("Approval failed. Check console for details.");
+            }
+        });
+    </script>
+</body>
+</html>
