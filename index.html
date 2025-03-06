@@ -14,89 +14,40 @@
         <h1>PWR Staking</h1>
     </header>
     <main>
-        <section id="wallet"> <button id="connectWallet" onclick="connectWallet()">Connect Wallet</button>
+        <section id="wallet">
+            <button id="connectWallet" onclick="connectWallet()">Connect Wallet</button>
             <p id="walletAddress">Not connected</p>
         </section>
         <section id="staking">
-            <h2>Stake Your PWR/PLS LP Tokens</h2> <input type="number" id="stakeAmount" placeholder="Enter amount to stake"> <button id="autoStakeButton" onclick="autoStake()">Stake LP Tokens</button>
+            <h2>Stake Your PWR/PLS LP Tokens</h2>
+            <input type="number" id="stakeAmount" placeholder="Enter amount to stake">
+            <button id="autoStakeButton" onclick="autoStake()">Stake LP Tokens</button>
         </section>
         <section id="unstake">
-            <h2>Unstake LP Tokens</h2> <button id="unstakeButton" onclick="unstakeTokens()">Unstake</button>
+            <h2>Unstake LP Tokens</h2>
+            <button id="unstakeButton" onclick="unstakeTokens()">Unstake</button>
         </section>
         <section id="rewards">
-            <h2>Claim Rewards</h2> <button id="claimRewardsButton" onclick="claimRewards()">Claim Rewards</button>
+            <h2>Claim Rewards</h2>
+            <button id="claimRewardsButton" onclick="claimRewards()">Claim Rewards</button>
         </section>
     </main>
     <footer>
         <p>&copy; 2025 PWR Staking</p>
     </footer>
+
     <script>
-        let web3;
-        let contract;
+        let web3, contract, lpTokenContract;
         const contractAddress = "0x4936e0DFa40F5Ada61920d6Bbfd12D2BA88FfAe8";
         const lpTokenAddress = "0xe5c56E4a8F8d96e3A91b18D83b7f0c36663C9a74";
-        const contractABI = [{
-            "inputs": [{
-                "internalType": "uint256",
-                "name": "_amount",
-                "type": "uint256"
-            }],
-            "name": "stake",
-            "outputs": [],
-            "stateMutability": "nonpayable",
-            "type": "function"
-        }, {
-            "inputs": [],
-            "name": "unstake",
-            "outputs": [],
-            "stateMutability": "nonpayable",
-            "type": "function"
-        }, {
-            "inputs": [],
-            "name": "claimRewards",
-            "outputs": [],
-            "stateMutability": "nonpayable",
-            "type": "function"
-        }];
-        const lpTokenABI = [{
-            "constant": false,
-            "inputs": [{
-                "name": "spender",
-                "type": "address"
-            }, {
-                "name": "value",
-                "type": "uint256"
-            }],
-            "name": "approve",
-            "outputs": [{
-                "name": "",
-                "type": "bool"
-            }],
-            "stateMutability": "nonpayable",
-            "type": "function"
-        }, {
-            "constant": true,
-            "inputs": [{
-                "name": "owner",
-                "type": "address"
-            }, {
-                "name": "spender",
-                "type": "address"
-            }],
-            "name": "allowance",
-            "outputs": [{
-                "name": "",
-                "type": "uint256"
-            }],
-            "stateMutability": "view",
-            "type": "function"
-        }];
+
+        const contractABI = [/* ABI PUBLICADO AQUÍ */];
+        const lpTokenABI = [/* ABI LP TOKEN AQUÍ */];
+
         async function connectWallet() {
             if (window.ethereum) {
                 web3 = new Web3(window.ethereum);
-                await window.ethereum.request({
-                    method: "eth_requestAccounts"
-                });
+                await window.ethereum.request({ method: "eth_requestAccounts" });
                 const accounts = await web3.eth.getAccounts();
                 document.getElementById("walletAddress").innerText = `Connected: ${accounts[0]}`;
                 contract = new web3.eth.Contract(contractABI, contractAddress);
@@ -105,6 +56,7 @@
                 alert("MetaMask not detected");
             }
         }
+
         async function autoStake() {
             const accounts = await web3.eth.getAccounts();
             const stakeAmount = document.getElementById("stakeAmount").value;
@@ -119,7 +71,7 @@
                     await lpTokenContract.methods.approve(contractAddress, web3.utils.toWei(stakeAmount, "ether")).send({
                         from: accounts[0]
                     });
-                    alert("Approval successful! Now staking...");
+                    alert("Approval successful! Automatically staking now...");
                 }
                 const tx = await contract.methods.stake(web3.utils.toWei(stakeAmount, "ether")).send({
                     from: accounts[0],
@@ -130,6 +82,7 @@
                 alert("Stake failed: " + error.message);
             }
         }
+
         async function unstakeTokens() {
             const accounts = await web3.eth.getAccounts();
             try {
@@ -141,6 +94,7 @@
                 alert("Unstake failed: " + error.message);
             }
         }
+
         async function claimRewards() {
             const accounts = await web3.eth.getAccounts();
             try {
