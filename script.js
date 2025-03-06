@@ -106,6 +106,7 @@ document.getElementById("stakeButton").addEventListener("click", async () => {
             return;
         }
 
+        console.log("Sending stake transaction...");
         const tx = await contract.methods.stake(web3.utils.toWei(stakeAmount, "ether")).send({ from: userAddress, gas: 300000 });
         console.log("Stake Transaction Hash:", tx.transactionHash);
 
