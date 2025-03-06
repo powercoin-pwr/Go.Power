@@ -14,35 +14,13 @@
             right: 20px;
             text-align: right;
         }
-        #price-container {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            text-align: left;
-        }
-        #price-container a {
-            display: block;
-            color: #ff9900;
-            text-decoration: none;
-            margin-top: 5px;
-            font-weight: bold;
-        }
     </style>
 </head>
 
 <body>
     <header>
         <h1>PWR Staking</h1>
-        <nav>
-            <a href="active_stakes.html" class="btn">View Active Stakes</a>
-        </nav>
     </header>
-    
-    <div id="price-container">
-        <p>PWR Price: <span id="pwrPrice">Loading...</span> USD</p>
-        <a href="active_stakes.html">View Active Stakes</a>
-    </div>
-    
     <main>
         <section id="wallet">
             <button id="connectWallet" onclick="connectWallet()">Connect Wallet</button>
@@ -61,75 +39,70 @@
             <h2>Claim Rewards</h2>
             <button id="claimRewardsButton" onclick="claimRewards()">Claim Rewards</button>
         </section>
+        <section id="activeStakes">
+            <h2>Your Active Stakes</h2>
+            <button onclick="showActiveStakes()">View Active Stakes</button>
+            <ul id="activeStakesList"></ul>
+        </section>
     </main>
     <footer>
         <p>&copy; 2025 PWR Staking</p>
     </footer>
-    
+
     <script>
-        async function fetchPWRPrice() {
-            try {
-                const resPWR = await fetch('https://api.dexscreener.com/latest/dex/tokens/0x3Eb3B7b3D95Cb3699295D7868F85e43b56AeeFcB');
-                const dataPWR = await resPWR.json();
-                document.getElementById('pwrPrice').innerText = dataPWR?.pairs?.[0]?.priceUsd || 'N/A';
-            } catch (error) {
-                console.error("Error fetching PWR price:", error);
-            }
-        }
-        fetchPWRPrice();
-        setInterval(fetchPWRPrice, 10000);
-    </script>
-    <script>
-        let web3;
-        let userAccount = null;
+        let web3, contract, lpTokenContract;
+
+        const contractAddress = "0x4936e0DFa40F5Ada61920d6Bbfd12D2BA88FfAe8";
+        const lpTokenAddress = "0xe5c56E4a8F8d96e3A91b18D83b7f0c36663C9a74";
+
+        const contractABI = [{"inputs":[{"internalType":"uint256","name":"_amount","type":"uint256"}],"name":"stake","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"unstake","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"claimRewards","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"getActiveStakes","outputs":[{"internalType":"uint256[]","name":"","type":"uint256[]"}],"stateMutability":"view","type":"function"}];
+        const lpTokenABI = [{"constant":true,"inputs":[{"name":"owner","type":"address"},{"name":"spender","type":"address"}],"name":"allowance","outputs":[{"name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"spender","type":"address"},{"name":"value","type":"uint256"}],"name":"approve","outputs":[{"name":"","type":"bool"}],"stateMutability":"nonpayable","type":"function"}];
 
         async function connectWallet() {
             if (window.ethereum) {
-                try {
-                    web3 = new Web3(window.ethereum);
-                    await window.ethereum.request({ method: "eth_requestAccounts" });
-                    const accounts = await web3.eth.getAccounts();
-                    
-                    if (accounts.length > 0) {
-                        userAccount = accounts[0];
-                        document.getElementById("walletAddress").innerText = `Connected: ${userAccount}`;
-                    } else {
-                        document.getElementById("walletAddress").innerText = "No wallet connected.";
-                    }
-                    
-                    // Verificar que la red sea PulseChain
-                    const networkId = await web3.eth.net.getId();
-                    if (networkId !== 369) {  // PulseChain Mainnet ID
-                        alert("Please switch to PulseChain Mainnet in MetaMask.");
-                    }
-                } catch (error) {
-                    console.error("Error connecting wallet:", error);
-                    alert("Connection failed. Try again.");
-                }
-            } else {
-                alert("MetaMask not detected. Please install MetaMask.");
-            }
-        }
-
-        async function checkWallet() {
-            if (window.ethereum) {
                 web3 = new Web3(window.ethereum);
+                await window.ethereum.request({ method: "eth_requestAccounts" });
                 const accounts = await web3.eth.getAccounts();
-                if (accounts.length > 0) {
-                    userAccount = accounts[0];
-                    document.getElementById("walletAddress").innerText = `Connected: ${userAccount}`;
-                } else {
-                    document.getElementById("walletAddress").innerText = "No wallet connected.";
-                }
+                document.getElementById("walletAddress").innerText = `Connected: ${accounts[0]}`;
+                contract = new web3.eth.Contract(contractABI, contractAddress);
+                lpTokenContract = new web3.eth.Contract(lpTokenABI, lpTokenAddress);
             } else {
-                document.getElementById("walletAddress").innerText = "MetaMask not detected.";
+                alert("MetaMask not detected");
             }
         }
 
-        // Ejecutar al cargar la página para ver si ya está conectada la wallet
-        checkWallet();
+        async function autoStake() {
+            const accounts = await web3.eth.getAccounts();
+            const stakeAmount = document.getElementById("stakeAmount").value;
+            if (!stakeAmount || stakeAmount <= 0) {
+                alert("Enter a valid stake amount.");
+                return;
+            }
+
+            try {
+                const allowance = await lpTokenContract.methods.allowance(accounts[0], contractAddress).call();
+                if (BigInt(allowance) < BigInt(web3.utils.toWei(stakeAmount, "ether"))) {
+                    await lpTokenContract.methods.approve(contractAddress, web3.utils.toWei(stakeAmount, "ether")).send({ from: accounts[0] });
+                    alert("Approval successful! Automatically staking...");
+                }
+
+                const tx = await contract.methods.stake(web3.utils.toWei(stakeAmount, "ether")).send({ from: accounts[0], gas: 300000 });
+                alert("Stake successful! TX: " + tx.transactionHash);
+            } catch (error) {
+                alert("Stake failed: " + error.message);
+            }
+        }
+
+        async function unstakeTokens() {
+            const accounts = await web3.eth.getAccounts();
+            try {
+                const tx = await contract.methods.unstake().send({ from: accounts[0], gas: 300000 });
+                alert("Unstake successful! TX: " + tx.transactionHash);
+            } catch (error) {
+                alert("Unstake failed: " + error.message);
+            }
+        }
     </script>
 </body>
-</html>
-</body>
-</html>
+
+</html> 
