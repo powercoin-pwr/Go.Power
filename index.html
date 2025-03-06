@@ -11,21 +11,38 @@
     <header>
         <h1>PWR Staking</h1>
     </header>
-
+    
     <main>
         <section id="wallet">
             <button id="connectWallet">Connect Wallet</button>
             <p id="walletAddress">Not connected</p>
         </section>
-
+        
         <section id="staking">
             <h2>Stake Your PWR/PLS LP Tokens</h2>
+            <button id="emergencyUnstakeButton">Emergency Unstake</button>
+            <button id="unstakeButton">Unstake LP Tokens</button>
             <button id="approveButton">Approve LP Tokens</button>
             <input type="number" id="stakeAmount" placeholder="Enter amount">
             <button id="stakeButton">Stake</button>
         </section>
+        
+        <section id="stakeTable">
+            <h2>Recent Stakes</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Address</th>
+                        <th>Amount Staked</th>
+                        <th>Rewards Earned</th>
+                    </tr>
+                </thead>
+                <tbody id="stakeRecords">
+                </tbody>
+            </table>
+        </section>
     </main>
-
+    
     <footer>
         <p>&copy; 2025 PWR Staking</p>
     </footer>
