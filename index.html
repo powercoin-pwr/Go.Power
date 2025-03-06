@@ -7,6 +7,14 @@
     <title>PWR Staking</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/web3@1.7.4/dist/web3.min.js"></script>
+    <style>
+        #wallet {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            text-align: right;
+        }
+    </style>
 </head>
 
 <body>
@@ -82,6 +90,16 @@
                 alert("Stake successful! TX: " + tx.transactionHash);
             } catch (error) {
                 alert("Stake failed: " + error.message);
+            }
+        }
+
+        async function unstakeTokens() {
+            const accounts = await web3.eth.getAccounts();
+            try {
+                const tx = await contract.methods.unstake().send({ from: accounts[0], gas: 300000 });
+                alert("Unstake successful! TX: " + tx.transactionHash);
+            } catch (error) {
+                alert("Unstake failed: " + error.message);
             }
         }
     </script>
