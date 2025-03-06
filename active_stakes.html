@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Active Stakes - PWR Staking</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/web3@1.7.4/dist/web3.min.js"></script>
+</head>
+
+<body>
+    <header>
+        <h1>Active Stakes</h1>
+        <a href="index.html" style="color: #ff9900;">← Back to Staking</a>
+    </header>
+
+    <main>
+        <section id="activeStakes">
+            <h2>Your Active Stakes</h2>
+            <button onclick="showActiveStakes()">View Active Stakes</button>
+            <ul id="activeStakesList"></ul>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2025 PWR Staking</p>
+    </footer>
+
+    <script>
+        let web3, contract;
+        const contractAddress = "0x4936e0DFa40F5Ada61920d6Bbfd12D2BA88FfAe8";
+
+        async function connectWeb3() {
+            if (window.ethereum) {
+                web3 = new Web3(window.ethereum);
+                await window.ethereum.request({ method: "eth_requestAccounts" });
+                contract = new web3.eth.Contract([{ "inputs": [{ "internalType": "address", "name": "", "type": "address" }], "name": "getActiveStakes", "outputs": [{ "internalType": "uint256[]", "name": "", "type": "uint256[]" }], "stateMutability": "view", "type": "function" }], contractAddress);
+            } else {
+                alert("MetaMask not detected");
+            }
+        }
+
+        async function showActiveStakes() {
+            const accounts = await web3.eth.getAccounts();
+            try {
+                const stakes = await contract.methods.getActiveStakes(accounts[0]).call();
+                document.getElementById("activeStakesList").innerHTML = stakes.map((amt, i) =>
+                    `<li>Stake ${i + 1}: ${web3.utils.fromWei(amt, "ether")} LP</li>`).join('');
+            } catch (error) {
+                console.error("Error fetching active stakes:", error);
+            }
+        }
+
+        connectWeb3();
+    </script>
+</body>
+
+</html>
