@@ -61,6 +61,7 @@ async function connectWallet() {
         const accounts = await web3.eth.getAccounts();
         document.getElementById("walletAddress").innerText = `Connected: ${accounts[0]}`;
         contract = new web3.eth.Contract(contractABI, contractAddress);
+        console.log("Contract initialized:", contract);
     } else {
         alert("MetaMask not detected");
     }
@@ -89,14 +90,26 @@ document.getElementById("autoStakeButton").addEventListener("click", async () =>
         alert("Approving LP Tokens...");
         const approvalTx = await lpTokenContract.methods.approve(contractAddress, web3.utils.toWei(stakeAmount, "ether")).send({ from: userAddress });
         console.log("Approval successful. Hash:", approvalTx.transactionHash);
-        alert("Approval successful! Proceeding with Stake...");
+        alert("Approval successful! Now stake manually.");
+    } catch (error) {
+        console.error("Approval failed:", error);
+        alert(`Approval failed: ${error.message}`);
+        return;
+    }
+});
 
+document.getElementById("stakeButton").addEventListener("click", async () => {
+    const accounts = await web3.eth.getAccounts();
+    const userAddress = accounts[0];
+    const stakeAmount = document.getElementById("stakeAmount").value;
+
+    try {
         console.log("Checking allowance...");
         const allowance = await lpTokenContract.methods.allowance(userAddress, contractAddress).call();
         console.log("Allowance: ", allowance);
 
         if (BigInt(allowance) < BigInt(web3.utils.toWei(stakeAmount, "ether"))) {
-            alert("Not enough allowance. Try approving again.");
+            alert("Not enough allowance. Approve first.");
             return;
         }
 
@@ -107,8 +120,8 @@ document.getElementById("autoStakeButton").addEventListener("click", async () =>
 
         alert("Stake successful!");
     } catch (error) {
-        console.error("Auto-Stake failed:", error);
-        alert(`Auto-Stake failed: ${error.message}`);
+        console.error("Stake failed:", error);
+        alert(`Stake failed: ${error.message}`);
     }
 });
 
