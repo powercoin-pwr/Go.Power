@@ -7,64 +7,6 @@
     <title>🚀 PowerCoin Staking 🚀</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/web3@1.7.4/dist/web3.min.js"></script>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #0c0c0c;
-            color: #eaeaea;
-            margin: 0;
-            padding: 0;
-        }
-        header {
-            background-color: #171717;
-            padding: 20px;
-            text-align: center;
-            border-bottom: 2px solid #ffd700;
-        }
-        header h1 {
-            color: #ffd700;
-            font-size: 2rem;
-        }
-        main {
-            max-width: 800px;
-            margin: 30px auto;
-            padding: 20px;
-        }
-        section {
-            background-color: #1f1f1f;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-        }
-        button, input {
-            padding: 10px;
-            font-size: 16px;
-            margin-top: 10px;
-            border-radius: 5px;
-            border: none;
-        }
-        button {
-            background-color: #ffd700;
-            color: #0c0c0c;
-            cursor: pointer;
-        }
-        button:hover {
-            background-color: #ffae00;
-        }
-        #wallet {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            text-align: right;
-        }
-        footer {
-            text-align: center;
-            padding: 10px;
-            border-top: 1px solid #444;
-            margin-top: 20px;
-            color: #888;
-        }
-    </style>
 </head>
 
 <body>
@@ -80,21 +22,23 @@
     <main>
         <section id="price">
             <h2>Current PWR Price: <span id="pwrPrice">Loading...</span></h2>
+            <h2>Current LP Token Price: <span id="lpPrice">Loading...</span></h2>
         </section>
 
         <section id="staking">
             <h2>Stake Your PWR/PLS LP Tokens</h2>
-            <input type="number" id="stakeAmount" placeholder="Enter amount to stake">
+            <input type="number" id="stakeAmount" placeholder="Amount">
             <button onclick="autoStake()">Stake LP Tokens</button>
         </section>
 
         <section id="unstake">
             <h2>Unstake LP Tokens</h2>
             <button onclick="unstakeTokens()">Unstake</button>
+            <p id="unstakeCountdown"></p>
         </section>
 
         <section id="rewards">
-            <h2>Claim Your Rewards</h2>
+            <h2>Claim Rewards</h2>
             <button onclick="claimRewards()">Claim Rewards</button>
         </section>
 
@@ -106,7 +50,7 @@
     </main>
 
     <footer>
-        &copy; 2025 PowerCoin Staking
+        <p>&copy; 2025 PowerCoin Staking</p>
     </footer>
 
     <script>
@@ -115,37 +59,29 @@
         const contractAddress = "0x4936e0DFa40F5Ada61920d6Bbfd12D2BA88FfAe8";
         const lpTokenAddress = "0xe5c56E4a8F8d96e3A91b18D83b7f0c36663C9a74";
 
-        const contractABI = [{"inputs":[{"internalType":"uint256","name":"_amount","type":"uint256"}],"name":"stake","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"unstake","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"claimRewards","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"getActiveStakes","outputs":[{"internalType":"uint256[]","name":"","type":"uint256[]"}],"stateMutability":"view","type":"function"}];
-        const lpTokenABI = [{"constant":true,"inputs":[{"name":"owner","type":"address"},{"name":"spender","type":"address"}],"name":"allowance","outputs":[{"name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"spender","type":"address"},{"name":"value","type":"uint256"}],"name":"approve","outputs":[{"name":"","type":"bool"}],"stateMutability":"nonpayable","type":"function"}];
-
-        async function connectWallet() {
-            if (window.ethereum) {
-                web3 = new Web3(window.ethereum);
-                await window.ethereum.request({ method: "eth_requestAccounts" });
-                const accounts = await web3.eth.getAccounts();
-                document.getElementById("walletAddress").innerText = `Connected: ${accounts[0]}`;
-                contract = new web3.eth.Contract(contractABI, contractAddress);
-                lpTokenContract = new web3.eth.Contract(lpTokenABI, lpTokenAddress);
-            } else {
-                alert("MetaMask not detected");
-            }
-        }
+        const contractABI = [
+            {"inputs":[{"internalType":"uint256","name":"_amount","type":"uint256"}],"name":"stake","outputs":[],"stateMutability":"nonpayable","type":"function"},
+            {"inputs":[],"name":"unstake","outputs":[],"stateMutability":"nonpayable","type":"function"},
+            {"inputs":[],"name":"claimRewards","outputs":[],"stateMutability":"nonpayable","type":"function"},
+            {"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"getActiveStakes","outputs":[{"internalType":"tuple[]","components":[{"internalType":"uint256","name":"amount","type":"uint256"},{"internalType":"uint256","name":"timestamp","type":"uint256"}],"name":"","type":"tuple[]"}],"stateMutability":"view","type":"function"}
+        ];
 
         async function showActiveStakes() {
             const accounts = await web3.eth.getAccounts();
             const stakes = await contract.methods.getActiveStakes(accounts[0]).call();
-            const list = stakes.map((amt, i) => `<li>Stake ${i + 1}: ${web3.utils.fromWei(amt, "ether")} LP Tokens</li>`).join('');
-            document.getElementById("activeStakesList").innerHTML = list;
-        }
 
-        async function fetchPwrPrice() {
-            const res = await fetch('https://api.dexscreener.com/latest/dex/tokens/0x3Eb3B7b3D95Cb3699295D7868F85e43b56AeeFcB');
-            const data = await res.json();
-            document.getElementById('pwrPrice').innerText = data.pairs[0].priceUsd;
-        }
+            if (stakes.length === 0) {
+                document.getElementById("activeStakesList").innerHTML = '<li>No active stakes found.</li>';
+                return;
+            }
 
-        fetchPwrPrice();
-        setInterval(fetchPwrPrice, 10000);
+            document.getElementById("activeStakesList").innerHTML = stakes.map((stake, index) => `
+                <li>
+                    Stake ${index + 1}: ${web3.utils.fromWei(stake.amount, "ether")} LP 
+                    | Staked on: ${new Date(stake.timestamp * 1000).toLocaleString()}
+                </li>
+            `).join('');
+        }
     </script>
 </body>
 
