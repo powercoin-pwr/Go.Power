@@ -45,6 +45,21 @@ h2 {
     text-transform: uppercase;
     font-weight: bold;
 }
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+table, th, td {
+    border: 1px solid #ffcc00;
+}
+th, td {
+    padding: 10px;
+    text-align: center;
+}
+th {
+    background-color: #ff6600;
+}
 footer {
     background: linear-gradient(90deg, #ffcc00, #ff6600);
     padding: 15px;
