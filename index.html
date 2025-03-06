@@ -6,6 +6,7 @@
     <title>PWR Staking</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/web3@1.7.4/dist/web3.min.js"></script>
+    <script defer src="script.js"></script>
 </head>
 <body>
     <header>
@@ -20,9 +21,8 @@
         
         <section id="staking">
             <h2>Stake Your PWR/PLS LP Tokens</h2>
-            <button id="approveButton">Approve LP Tokens</button>
             <input type="number" id="stakeAmount" placeholder="Enter amount to stake">
-            <button id="stakeButton">Stake</button>
+            <button id="autoStakeButton">Auto Stake (Approve + Stake)</button>
         </section>
 
         <section id="unstake">
@@ -55,7 +55,5 @@
     <footer>
         <p>&copy; 2025 PWR Staking</p>
     </footer>
-
-    <script src="script.js"></script>
 </body>
 </html>
