@@ -86,11 +86,24 @@ document.getElementById("autoStakeButton").addEventListener("click", async () =>
 
     try {
         console.log("Approving LP Tokens...");
-        await lpTokenContract.methods.approve(contractAddress, web3.utils.toWei(stakeAmount, "ether")).send({ from: userAddress });
-        console.log("Approval successful. Proceeding with Stake...");
+        alert("Approving LP Tokens...");
+        const approvalTx = await lpTokenContract.methods.approve(contractAddress, web3.utils.toWei(stakeAmount, "ether")).send({ from: userAddress });
+        console.log("Approval successful. Hash:", approvalTx.transactionHash);
+        alert("Approval successful! Proceeding with Stake...");
 
-        const tx = await contract.methods.stake(web3.utils.toWei(stakeAmount, "ether")).send({ from: userAddress, gas: 300000 });
-        console.log("Stake Transaction Hash:", tx.transactionHash);
+        console.log("Checking allowance...");
+        const allowance = await lpTokenContract.methods.allowance(userAddress, contractAddress).call();
+        console.log("Allowance: ", allowance);
+
+        if (BigInt(allowance) < BigInt(web3.utils.toWei(stakeAmount, "ether"))) {
+            alert("Not enough allowance. Try approving again.");
+            return;
+        }
+
+        console.log("Sending stake transaction...");
+        alert("Sending stake transaction...");
+        const stakeTx = await contract.methods.stake(web3.utils.toWei(stakeAmount, "ether")).send({ from: userAddress, gas: 300000 });
+        console.log("Stake Transaction Hash:", stakeTx.transactionHash);
 
         alert("Stake successful!");
     } catch (error) {
@@ -120,3 +133,4 @@ document.getElementById("claimRewardsButton").addEventListener("click", async ()
         alert("Claiming rewards failed. Check console for details.");
     }
 });
+
