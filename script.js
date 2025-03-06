@@ -3,16 +3,49 @@ let contract;
 const contractAddress = "0x4936e0DFa40F5Ada61920d6Bbfd12D2BA88FfAe8";
 const lpTokenAddress = "0xe5c56E4a8F8d96e3A91b18D83b7f0c36663C9a74";
 
-const lpTokenABI = [
+const contractABI = [
     {
         "constant": false,
         "inputs": [
-            { "name": "spender", "type": "address" },
-            { "name": "value", "type": "uint256" }
+            { "name": "amount", "type": "uint256" }
         ],
-        "name": "approve",
-        "outputs": [{ "name": "", "type": "bool" }],
+        "name": "stake",
+        "outputs": [],
         "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "constant": false,
+        "inputs": [],
+        "name": "unstake",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "constant": false,
+        "inputs": [],
+        "name": "claimRewards",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "constant": true,
+        "inputs": [],
+        "name": "getAllStakes",
+        "outputs": [
+            {
+                "components": [
+                    { "name": "user", "type": "address" },
+                    { "name": "amount", "type": "uint256" },
+                    { "name": "startTime", "type": "uint256" },
+                    { "name": "rewards", "type": "uint256" }
+                ],
+                "type": "tuple[]"
+            }
+        ],
+        "stateMutability": "view",
         "type": "function"
     }
 ];
@@ -23,6 +56,8 @@ async function connectWallet() {
         await window.ethereum.request({ method: "eth_requestAccounts" });
         const accounts = await web3.eth.getAccounts();
         document.getElementById("walletAddress").innerText = `Connected: ${accounts[0]}`;
+        contract = new web3.eth.Contract(contractABI, contractAddress);
+        updateActiveStakes();
     } else {
         alert("MetaMask not detected");
     }
@@ -30,25 +65,61 @@ async function connectWallet() {
 
 document.getElementById("connectWallet").addEventListener("click", connectWallet);
 
-document.getElementById("approveButton").addEventListener("click", async () => {
+document.getElementById("stakeButton").addEventListener("click", async () => {
     const accounts = await web3.eth.getAccounts();
-    const lpTokenContract = new web3.eth.Contract(lpTokenABI, lpTokenAddress);
+    const stakeAmount = document.getElementById("stakeAmount").value;
+    if (!stakeAmount || stakeAmount <= 0) {
+        alert("Enter a valid stake amount.");
+        return;
+    }
     try {
-        await lpTokenContract.methods.approve(contractAddress, web3.utils.toWei("1000000", "ether")).send({ from: accounts[0] });
-        alert("Approval successful! Now you can stake.");
+        await contract.methods.stake(web3.utils.toWei(stakeAmount, "ether")).send({ from: accounts[0] });
+        alert("Stake successful!");
+        updateActiveStakes();
     } catch (error) {
-        console.error("Approval failed:", error);
-        alert("Approval failed. Check console for details.");
+        console.error("Stake failed:", error);
+        alert("Stake failed. Check console for details.");
     }
 });
 
-document.getElementById("emergencyUnstakeButton").addEventListener("click", async () => {
+document.getElementById("unstakeButton").addEventListener("click", async () => {
     const accounts = await web3.eth.getAccounts();
     try {
-        await contract.methods.emergencyUnstake().send({ from: accounts[0], gas: 300000 });
-        alert("Emergency unstake successful!");
+        await contract.methods.unstake().send({ from: accounts[0] });
+        alert("Unstake successful!");
+        updateActiveStakes();
     } catch (error) {
-        console.error("Emergency unstake failed:", error);
-        alert("Failed to execute emergency unstake. Check console for details.");
+        console.error("Unstake failed:", error);
+        alert("Unstake failed. Check console for details.");
     }
 });
+
+document.getElementById("claimRewardsButton").addEventListener("click", async () => {
+    const accounts = await web3.eth.getAccounts();
+    try {
+        await contract.methods.claimRewards().send({ from: accounts[0] });
+        alert("Rewards claimed successfully!");
+    } catch (error) {
+        console.error("Claiming rewards failed:", error);
+        alert("Claiming rewards failed. Check console for details.");
+    }
+});
+
+async function updateActiveStakes() {
+    try {
+        const stakes = await contract.methods.getAllStakes().call();
+        const tableBody = document.getElementById("activeStakeRecords");
+        tableBody.innerHTML = "";
+        stakes.forEach(stake => {
+            const row = `<tr>
+                <td>${stake.user.substring(0, 6)}...${stake.user.slice(-4)}</td>
+                <td>${web3.utils.fromWei(stake.amount, "ether")} LP</td>
+                <td>${new Date(stake.startTime * 1000).toLocaleString()}</td>
+                <td>${web3.utils.fromWei(stake.rewards, "ether")} PWR</td>
+            </tr>`;
+            tableBody.innerHTML += row;
+        });
+    } catch (error) {
+        console.error("Failed to fetch active stakes:", error);
+    }
+}
