@@ -1,3 +1,41 @@
+const lpTokenABI = [
+    {
+        "constant": false,
+        "inputs": [
+            { "name": "spender", "type": "address" },
+            { "name": "value", "type": "uint256" }
+        ],
+        "name": "approve",
+        "outputs": [{ "name": "", "type": "bool" }],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "constant": true,
+        "inputs": [
+            { "name": "owner", "type": "address" },
+            { "name": "spender", "type": "address" }
+        ],
+        "name": "allowance",
+        "outputs": [{ "name": "", "type": "uint256" }],
+        "stateMutability": "view",
+        "type": "function"
+    }
+];
+
+const lpTokenContract = new web3.eth.Contract(lpTokenABI, lpTokenAddress);
+
+document.getElementById("approveButton").addEventListener("click", async () => {
+    const accounts = await web3.eth.getAccounts();
+    try {
+        await lpTokenContract.methods.approve(contractAddress, web3.utils.toWei("1000000", "ether")).send({ from: accounts[0] });
+        alert("Approval successful! Now you can stake.");
+    } catch (error) {
+        console.error("Approval failed:", error);
+        alert("Approval failed. Check console for details.");
+    }
+});
+
 document.getElementById("stakeButton").addEventListener("click", async () => {
     const accounts = await web3.eth.getAccounts();
     const userAddress = accounts[0];
@@ -13,33 +51,8 @@ document.getElementById("stakeButton").addEventListener("click", async () => {
         return;
     }
 
-    const lpTokenContract = new web3.eth.Contract([
-        {
-            "constant": false,
-            "inputs": [
-                { "name": "spender", "type": "address" },
-                { "name": "value", "type": "uint256" }
-            ],
-            "name": "approve",
-            "outputs": [{ "name": "", "type": "bool" }],
-            "stateMutability": "nonpayable",
-            "type": "function"
-        },
-        {
-            "constant": true,
-            "inputs": [
-                { "name": "owner", "type": "address" },
-                { "name": "spender", "type": "address" }
-            ],
-            "name": "allowance",
-            "outputs": [{ "name": "", "type": "uint256" }],
-            "stateMutability": "view",
-            "type": "function"
-        }
-    ], lpTokenAddress);
-
     try {
-        // Verificar cuánto ha aprobado el usuario
+        // Verificar si el usuario aprobó suficientes LP Tokens
         const allowance = await lpTokenContract.methods.allowance(userAddress, contractAddress).call();
         console.log("Allowance:", allowance);
 
